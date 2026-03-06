@@ -3,14 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Jazz Chord Trainer (Voice) — maj7 / min7 / dom7</title>
+  <title>Jazz Chord Trainer (Voice)</title>
   <style>
     html, body { height: 100%; }
     body {
       margin: 12px;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       line-height: 1.25;
-      overflow: hidden; /* page doesn't scroll */
+      overflow: hidden;
+      background-color: #f8f9fa;
     }
     h1 { font-size: 20px; margin: 0 0 8px; }
 
@@ -18,7 +19,7 @@
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
-      align-items: flex-end;
+      align-items: flex-start;
       margin-bottom: 10px;
     }
     .block {
@@ -26,20 +27,20 @@
       border-radius: 12px;
       padding: 8px 10px;
       background: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
     }
     .block h4 { margin: 0 0 6px; font-size: 12px; color: #111; }
     .checkrow { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
-    label { font-size: 12px; color: #333; user-select: none; }
+    label { font-size: 12px; color: #333; user-select: none; cursor: pointer; }
     .hint { margin-top: 4px; color: #777; font-size: 11px; }
     .small { font-size: 12px; color: #555; }
 
-    /* Robust layout: use remaining viewport height without fragile calc constants */
     .layout {
       display: grid;
       grid-template-columns: 1.15fr 1fr;
       gap: 12px;
-      height: calc(100vh - 12px - 12px - 20px - 8px - 10px); /* margin top/bottom + h1 block approx */
-      min-height: 300px;
+      height: calc(100vh - 160px);
+      min-height: 350px;
     }
 
     .card {
@@ -49,46 +50,41 @@
       height: 100%;
       display: flex;
       flex-direction: column;
-      min-height: 0; /* allow internal scroll */
+      min-height: 0;
       background: #fff;
     }
 
-    /* Scrollable middle area inside each card */
-    .cardBody {
-      overflow: auto;
-      min-height: 0;
-      padding-right: 4px;
-    }
-
-    /* Bottom bar always visible */
-    .cardFooter {
-      margin-top: 8px;
-      padding-top: 8px;
-      border-top: 1px solid #eee;
-    }
+    .cardBody { overflow: auto; min-height: 0; padding-right: 4px; }
+    .cardFooter { margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee; }
 
     #notation {
       border: 1px solid #eee;
       border-radius: 12px;
       padding: 8px;
       background: #fafafa;
+      display: flex;
+      justify-content: center;
     }
 
     .meta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; color: #333; }
-    .pill { padding: 5px 9px; border-radius: 999px; background: #f3f3f3; border: 1px solid #e5e5e5; font-size: 12px; }
+    .pill { padding: 5px 12px; border-radius: 999px; background: #f3f3f3; border: 1px solid #e5e5e5; font-size: 12px; font-weight: 500; }
 
     .controls { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
     button {
-      padding: 8px 10px;
+      padding: 8px 12px;
       border-radius: 10px;
       border: 1px solid #ccc;
       background: white;
       cursor: pointer;
       font-size: 13px;
+      transition: all 0.2s;
     }
-    button.primary { border-color: #111; }
-    button:disabled { opacity: 0.6; cursor: not-allowed; }
-    input {
+    button:hover:not(:disabled) { background: #f0f0f0; border-color: #999; }
+    button.primary { background: #111; color: #fff; border-color: #111; }
+    button.primary:hover:not(:disabled) { background: #333; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    input[type="text"] {
       padding: 8px 10px;
       border-radius: 10px;
       border: 1px solid #ccc;
@@ -96,18 +92,17 @@
       font-size: 13px;
     }
 
-    .transcript { margin-top: 6px; font-size: 13px; color: #222; }
+    .transcript { margin-top: 10px; font-size: 14px; color: #222; min-height: 20px; font-weight: 500; }
     .status { margin-top: 6px; min-height: 18px; font-weight: 700; font-size: 13px; }
     .ok { color: #0a7a2f; }
     .bad { color: #b00020; }
 
     table { width: 100%; border-collapse: collapse; margin-top: 8px; }
     th, td { text-align: left; padding: 6px; border-bottom: 1px solid #eee; font-size: 12px; }
-    th { font-weight: 700; }
+    th { font-weight: 700; background: #fcfcfc; }
 
-    code { background: #f6f6f6; padding: 2px 6px; border-radius: 6px; font-size: 12px; }
+    code { background: #eee; padding: 2px 4px; border-radius: 4px; font-weight: bold; }
 
-    /* Narrow screens: allow page scroll (better UX on small screens) */
     @media (max-width: 980px) {
       body { overflow: auto; }
       .layout { grid-template-columns: 1fr; height: auto; }
@@ -128,7 +123,14 @@
         <label><input type="checkbox" id="cbSharps" checked> Sharps</label>
         <label><input type="checkbox" id="cbFlats" checked> Flats</label>
       </div>
-      <div class="hint">Keep at least one selected.</div>
+    </div>
+
+    <div class="block">
+      <h4>Clef</h4>
+      <div class="checkrow">
+        <label><input type="radio" name="clef" id="clefTreble" checked> Treble</label>
+        <label><input type="radio" name="clef" id="clefBass"> Bass</label>
+      </div>
     </div>
 
     <div class="block">
@@ -138,20 +140,18 @@
         <label><input type="checkbox" id="inv1"> 1st</label>
         <label><input type="checkbox" id="inv2"> 2nd</label>
       </div>
-      <div class="hint">If multiple are checked, each chord picks one at random.</div>
     </div>
 
     <div class="block">
       <h4>How to answer</h4>
       <div class="small">
-        Say <code>Bbmaj7</code> / <code>F#min7</code> / <code>E7</code><br/>
-        or “B flat major seven”.
+        Hold <code>SPACE</code> to talk. Release to submit.<br/>
+        Say <code>Bbmaj7</code> or “B flat major seven”.
       </div>
     </div>
   </div>
 
   <div class="layout">
-    <!-- LEFT -->
     <div class="card">
       <div class="cardBody">
         <div id="notation"></div>
@@ -160,26 +160,15 @@
           <div class="pill">Q: <span id="qIdx">0</span>/10</div>
           <div class="pill">Time: <span id="timeNow">0.00</span>s</div>
           <div class="pill">Score: <span id="scoreNow">0</span></div>
-          <div class="pill"><span id="invShown">Inv: —</span></div>
         </div>
 
-        <div class="controls">
-          <button id="enableMicBtn">🎤 Enable mic (once)</button>
-          <span class="small" id="micState">Mic: not enabled</span>
+        <div class="transcript" id="micIndicator">
+          Heard: <span id="heardText">—</span>
         </div>
 
-        <div class="controls">
-          <button id="playBtn" disabled>🔊 Play</button>
-          <button id="listenBtn" disabled>🎙 Listen</button>
-          <button id="stopListenBtn" disabled>Stop</button>
-          <label class="small"><input type="checkbox" id="autoListen"> Auto-listen</label>
-        </div>
-
-        <div class="transcript">Heard: <span id="heardText">—</span></div>
-
-        <div class="controls">
-          <input id="textFallback" placeholder="Fallback: type Bbmaj7" style="flex:1; min-width:220px;" />
-          <button id="submitTextBtn" disabled>Submit</button>
+        <div class="controls" style="margin-top:20px;">
+          <button id="playBtn" disabled>🔊 Play Chord</button>
+          <span class="small" id="micState" style="margin-left:auto;">Mic: initializing...</span>
         </div>
 
         <div class="status" id="status"></div>
@@ -187,36 +176,26 @@
 
       <div class="cardFooter">
         <div class="controls">
-          <button class="primary" id="startBtn">Start</button>
-          <button id="nextBtn" disabled>Next</button>
+          <button class="primary" id="startBtn">Start Quiz</button>
+          <button id="nextBtn" disabled>Next Chord (Enter)</button>
           <button id="restartBtn">Restart</button>
         </div>
       </div>
     </div>
 
-    <!-- RIGHT -->
     <div class="card">
       <div class="cardBody">
         <h3 style="margin:0 0 6px; font-size:14px;">Results</h3>
-        <div id="results" class="small">Press <b>Start</b>.</div>
-
+        <div id="results" class="small">Press <b>Start Quiz</b>.</div>
+        <div id="mistakesPanel"></div>
         <div class="controls" style="margin-top:10px;">
           <button id="practiceMistakesBtn" disabled>Practice mistakes</button>
-        </div>
-
-        <div id="mistakesPanel"></div>
-
-        <div style="margin-top:10px;" class="small">
-          Tip: run via localhost so Chrome remembers mic permission:
-          <br/><code>python -m http.server 8000</code> then open <code>http://localhost:8000/</code>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- VexFlow -->
   <script src="https://unpkg.com/vexflow@4.2.3/build/cjs/vexflow.js"></script>
-  <!-- Tone.js -->
   <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
 
   <script>
@@ -237,32 +216,17 @@
       if (nat) pool = pool.concat(ROOTS_NAT);
       if (sh)  pool = pool.concat(ROOTS_SHARP);
       if (fl)  pool = pool.concat(ROOTS_FLAT);
-      if (pool.length === 0) pool = ROOTS_NAT.slice();
-      return pool;
+      return pool.length === 0 ? ROOTS_NAT : pool;
     }
-
-    function getSelectedInversions() {
-      const invs = [];
-      if (document.getElementById("inv0").checked) invs.push(0);
-      if (document.getElementById("inv1").checked) invs.push(1);
-      if (document.getElementById("inv2").checked) invs.push(2);
-      if (invs.length === 0) invs.push(0);
-      return invs;
-    }
-    function pickInversionForQuestion() { return pickRandom(getSelectedInversions()); }
-    function invLabel(inv) { return inv === 0 ? "Root" : inv === 1 ? "1st" : "2nd"; }
 
     const PC = { "C":0, "C#":1, "Db":1, "D":2, "D#":3, "Eb":3, "E":4, "F":5, "F#":6, "Gb":6, "G":7, "G#":8, "Ab":8, "A":9, "A#":10, "Bb":10, "B":11 };
     const SPELL_SHARP = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
     const SPELL_FLAT  = ["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"];
 
     function intervalsFor(qual) {
-      switch (qual) {
-        case "maj7": return [0, 4, 7, 11];
-        case "min7": return [0, 3, 7, 10];
-        case "7":    return [0, 4, 7, 10];
-        default: throw new Error("Unknown quality: " + qual);
-      }
+      if (qual === "maj7") return [0, 4, 7, 11];
+      if (qual === "min7") return [0, 3, 7, 10];
+      return [0, 4, 7, 10];
     }
     function rotate(arr, n) {
       const k = ((n % arr.length) + arr.length) % arr.length;
@@ -273,455 +237,145 @@
       const rootPc = PC[root];
       const useFlat = root.includes("b") && !root.includes("#");
       const spell = useFlat ? SPELL_FLAT : SPELL_SHARP;
-
       const pcs0 = intervalsFor(qual).map(semi => (rootPc + semi) % 12);
       const names0 = pcs0.map(p => spell[p]);
       const names = rotate(names0, inversion);
-
-      let octave = 4;
-      const midiBase = 60; // C4
-      const nameToMidi = (name, oct) => {
-        const pc = PC[name];
-        const cOfOct = midiBase + (oct - 4) * 12;
-        return cOfOct + pc;
-      };
-
+      
+      const isBass = document.getElementById("clefBass").checked;
+      let octave = isBass ? 2 : 4; 
+      
       let prevMidi = null;
       const out = [];
       for (const nm of names) {
-        let m = nameToMidi(nm, octave);
+        let m = (octave * 12) + PC[nm];
         while (prevMidi !== null && m <= prevMidi) {
           octave += 1;
-          m = nameToMidi(nm, octave);
+          m = (octave * 12) + PC[nm];
         }
         prevMidi = m;
         out.push({ name: nm, octave });
       }
       return out;
     }
-    function chordToToneNotes(root, qual, inversion) {
-      return chordToSpelledNotes(root, qual, inversion).map(n => `${n.name}${n.octave}`);
-    }
 
-    // VexFlow
-    let VF = null, renderer = null, context = null;
-    function initVexflow() {
-      VF = Vex.Flow;
+    let VF = Vex.Flow, renderer = null, context = null;
+    function drawChord(root, qual, inversion) {
       const div = document.getElementById("notation");
       div.innerHTML = "";
       renderer = new VF.Renderer(div, VF.Renderer.Backends.SVG);
-      renderer.resize(520, 165);
+      renderer.resize(400, 150);
       context = renderer.getContext();
-      context.setFont("Arial", 10, "").setBackgroundFillStyle("#fafafa");
-    }
-    function drawChord(root, qual, inversion) {
-      initVexflow();
-      const stave = new VF.Stave(10, 18, 500);
-      stave.addClef("treble");
-      stave.setContext(context).draw();
-
+      const clef = document.getElementById("clefBass").checked ? "bass" : "treble";
+      const stave = new VF.Stave(10, 10, 350).addClef(clef).setContext(context).draw();
       const notes = chordToSpelledNotes(root, qual, inversion);
       const keys = notes.map(n => `${n.name[0].toLowerCase()}/${n.octave}`);
-      const chordNote = new VF.StaveNote({ clef: "treble", keys, duration: "w" });
+      const chordNote = new VF.StaveNote({ clef, keys, duration: "w" });
       notes.forEach((n, idx) => {
         if (n.name.includes("#")) chordNote.addModifier(new VF.Accidental("#"), idx);
         if (n.name.includes("b")) chordNote.addModifier(new VF.Accidental("b"), idx);
       });
-
-      const voice = new VF.Voice({ num_beats: 4, beat_value: 4 });
-      voice.addTickables([chordNote]);
-      new VF.Formatter().joinVoices([voice]).format([voice], 420);
-      voice.draw(context, stave);
+      VF.Formatter.FormatAndDraw(context, stave, [chordNote]);
     }
 
-    // Tone
     let synth = null;
-    async function ensureAudio() {
+    async function initAudio() {
       if (Tone.context.state !== "running") await Tone.start();
-      if (!synth) {
-        synth = new Tone.PolySynth(Tone.Synth, {
-          oscillator: { type: "sine" },
-          envelope: { attack: 0.01, decay: 0.1, sustain: 0.4, release: 0.6 }
-        }).toDestination();
-      }
+      if (!synth) synth = new Tone.PolySynth(Tone.Synth).toDestination();
     }
 
-    // Mic once
-    let micStream = null;
-    async function enableMicOnce() {
-      try {
-        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        document.getElementById("micState").textContent = "Mic: enabled";
-        document.getElementById("enableMicBtn").disabled = true;
-        updateListenButtons();
-      } catch (e) {
-        document.getElementById("micState").textContent = "Mic: denied/unavailable";
-        setStatus("Could not enable mic. Check Chrome mic permission.", "bad");
-      }
-    }
-
-    // SpeechRecognition
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let recog = null;
-    let listening = false;
-
-    function initSpeech() {
-      if (!SpeechRecognition) return false;
-      recog = new SpeechRecognition();
-      recog.lang = "en-GB";
-      recog.interimResults = true;
-      recog.continuous = false;
-
-      recog.onresult = (event) => {
-        const res = event.results[event.results.length - 1];
-        const transcript = res[0].transcript.trim();
-        document.getElementById("heardText").textContent = transcript;
-
-        if (res.isFinal) {
-          stopListening();
-          const parsed = parseSpokenChord(transcript);
-          if (!parsed) {
-            setStatus(`Couldn’t parse: "${transcript}". Try “B flat major seven” or “Bbmaj7”.`, "bad");
-            enableTextSubmit(true);
-            return;
-          }
-          gradeAnswer(parsed.normalized, transcript);
+    let recog = null, isListening = false;
+    async function initMic() {
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        document.getElementById("micState").textContent = "Mic: Ready (Spacebar)";
+        if (SpeechRecognition) {
+          recog = new SpeechRecognition();
+          recog.lang = "en-US";
+          recog.interimResults = true;
+          recog.onresult = (e) => {
+            const transcript = e.results[e.results.length - 1][0].transcript;
+            document.getElementById("heardText").textContent = transcript;
+            if (e.results[e.results.length - 1].isFinal) handleFinalSpeech(transcript);
+          };
         }
-      };
-
-      recog.onerror = (e) => {
-        stopListening();
-        setStatus(`Voice error: ${e.error}. Try again or use text.`, "bad");
-        enableTextSubmit(true);
-      };
-
-      recog.onend = () => { listening = false; updateListenButtons(); };
-      return true;
+      } catch (e) {
+        document.getElementById("micState").textContent = "Mic: Blocked";
+      }
     }
 
-    function updateListenButtons() {
-      const listenBtn = document.getElementById("listenBtn");
-      const stopBtn = document.getElementById("stopListenBtn");
-      const speechOk = !!SpeechRecognition;
-      listenBtn.disabled = !currentQuestion || awaitingNext || listening || !speechOk;
-      stopBtn.disabled = !listening;
-    }
-    function startListening() {
-      if (!recog && !initSpeech()) { setStatus("SpeechRecognition not supported (use Chrome).", "bad"); return; }
-      if (awaitingNext || !currentQuestion) return;
-      document.getElementById("heardText").textContent = "…";
-      enableTextSubmit(false);
-      listening = true;
-      updateListenButtons();
-      try { recog.start(); } catch { listening = false; updateListenButtons(); setStatus("Couldn’t start listening. Try again.", "bad"); }
-    }
-    function stopListening() {
-      if (recog && listening) { try { recog.stop(); } catch {} }
-      listening = false;
-      updateListenButtons();
+    function handleFinalSpeech(text) {
+      const parsed = parseSpokenChord(text);
+      if (parsed) gradeAnswer(parsed.normalized);
+      else setStatus(`Couldn't understand "${text}"`, "bad");
     }
 
     function parseSpokenChord(text) {
-      let s = text.toLowerCase().trim().replace(/[-,]/g, " ").replace(/\s+/g, " ");
-      let sym = s.replace(/\s/g, "");
-      sym = sym.replace(/minor/g, "min").replace(/major/g, "maj");
-      sym = sym.replace(/m7\b/g, "min7");
-
-      const m1 = sym.match(/^([a-g])([#b])?(maj7|min7|7)$/i);
-      if (m1) {
-        const root = (m1[1].toUpperCase()) + (m1[2] ? m1[2] : "");
-        const qual = m1[3] === "7" ? "7" : m1[3].toLowerCase();
-        if (!(root in PC)) return null;
-        return { root, qual, normalized: chordLabel(root, qual) };
+      let s = text.toLowerCase().trim().replace(/major/g, "maj").replace(/minor/g, "min");
+      const m = s.match(/([a-g])\s?(flat|sharp|#|b)?\s?(maj7|min7|7)/i);
+      if (m) {
+        let root = m[1].toUpperCase();
+        if (m[2]) root += (m[2].startsWith("f") || m[2] === "b") ? "b" : "#";
+        return { normalized: root + m[3] };
       }
-
-      const rootMatch = s.match(/\b([a-g])\b/i);
-      if (!rootMatch) return null;
-      const rootLetter = rootMatch[1].toUpperCase();
-
-      let acc = "";
-      if (s.includes("flat")) acc = "b";
-      if (s.includes("sharp")) acc = "#";
-
-      let qual = null;
-      if (s.includes("major") && (s.includes("seven") || s.includes("7"))) qual = "maj7";
-      else if ((s.includes("minor") || s.includes("min")) && (s.includes("seven") || s.includes("7"))) qual = "min7";
-      else if (s.includes("dominant") && (s.includes("seven") || s.includes("7"))) qual = "7";
-      else if (s.includes("seven") || s.match(/\b7\b/)) qual = "7";
-      if (!qual) return null;
-
-      const root = rootLetter + acc;
-      if (!(root in PC)) return null;
-      return { root, qual, normalized: chordLabel(root, qual) };
+      return null;
     }
 
-    // Quiz state
-    let set = [], idx = 0, score = 0, times = [];
+    let set = [], idx = 0, score = 0, times = [], mistakes = [], currentQuestion = null;
     let startTs = null, timerHandle = null, awaitingNext = false;
-    let mistakes = [];
-    let mistakeChordMap = new Map();
-    let currentQuestion = null;
-
-    // DOM
-    const qIdxEl = document.getElementById("qIdx");
-    const timeNowEl = document.getElementById("timeNow");
-    const scoreNowEl = document.getElementById("scoreNow");
-    const statusEl = document.getElementById("status");
-    const resultsEl = document.getElementById("results");
-    const mistakesPanelEl = document.getElementById("mistakesPanel");
-    const invShownEl = document.getElementById("invShown");
-
-    const startBtn = document.getElementById("startBtn");
-    const nextBtn = document.getElementById("nextBtn");
-    const restartBtn = document.getElementById("restartBtn");
-    const playBtn = document.getElementById("playBtn");
-    const practiceMistakesBtn = document.getElementById("practiceMistakesBtn");
-
-    const enableMicBtn = document.getElementById("enableMicBtn");
-    const listenBtn = document.getElementById("listenBtn");
-    const stopListenBtn = document.getElementById("stopListenBtn");
-    const submitTextBtn = document.getElementById("submitTextBtn");
-    const textFallback = document.getElementById("textFallback");
 
     function setStatus(msg, cls) {
-      statusEl.textContent = msg;
-      statusEl.className = "status " + (cls || "");
-    }
-    function enableTextSubmit(on) {
-      textFallback.disabled = !on;
-      submitTextBtn.disabled = !on || awaitingNext || !currentQuestion;
+      const s = document.getElementById("status");
+      s.textContent = msg;
+      s.className = "status " + (cls || "");
     }
 
-    function makeRandomChord() {
-      const root = pickRandom(getRootPool());
-      const qual = pickRandom(QUALS);
-      const inv = pickInversionForQuestion();
-      return { root, qual, inv, label: chordLabel(root, qual) };
-    }
-
-    function buildSetOf10(fromChords = null) {
-      const out = [];
-      if (Array.isArray(fromChords) && fromChords.length) {
-        const seen = new Set();
-        for (const c of fromChords) {
-          const key = c.label + "|" + c.inv;
-          if (!seen.has(key) && out.length < TOTAL) { out.push(c); seen.add(key); }
-        }
-      }
-      while (out.length < TOTAL) {
-        const c = makeRandomChord();
-        if (!out.some(x => x.label === c.label && x.inv === c.inv)) out.push(c);
-      }
-      return out;
-    }
-
-    function startTimer() {
-      startTs = performance.now();
-      timerHandle = setInterval(() => {
-        const t = (performance.now() - startTs) / 1000;
-        timeNowEl.textContent = t.toFixed(2);
-      }, 30);
-    }
-    function stopTimerAndRecord() {
-      if (!startTs) return 0;
+    function gradeAnswer(guess) {
+      if (awaitingNext || !currentQuestion) return;
+      awaitingNext = true;
       const t = (performance.now() - startTs) / 1000;
       clearInterval(timerHandle);
-      timerHandle = null;
-      startTs = null;
-      timeNowEl.textContent = t.toFixed(2);
-      times.push(t);
-      return t;
-    }
-
-    async function playCurrentChord() {
-      if (!currentQuestion) return;
-      await ensureAudio();
-      const notes = chordToToneNotes(currentQuestion.root, currentQuestion.qual, currentQuestion.inv);
-      synth.triggerAttackRelease(notes, "1n");
-    }
-
-    function gradeAnswer(normalizedLabel, rawHeard) {
-      if (awaitingNext) return;
-      awaitingNext = true;
-      stopListening();
-
-      const t = stopTimerAndRecord();
-      const correct = currentQuestion.label;
-
-      if (normalizedLabel === correct) {
-        score += 1;
+      if (guess === currentQuestion.label) {
+        score++;
         setStatus(`✔ Correct (${t.toFixed(2)}s)`, "ok");
       } else {
-        setStatus(`✘ Wrong (${t.toFixed(2)}s). Correct: ${correct}`, "bad");
-        mistakes.push({ correctLabel: correct, parsed: normalizedLabel, time: t, inv: currentQuestion.inv });
-        mistakeChordMap.set(correct + "|" + currentQuestion.inv, currentQuestion);
+        setStatus(`✘ Wrong. Was ${currentQuestion.label}`, "bad");
+        mistakes.push({ q: currentQuestion.label, got: guess });
       }
-
-      scoreNowEl.textContent = score.toString();
-      nextBtn.disabled = false;
-
-      playBtn.disabled = true;
-      listenBtn.disabled = true;
-      stopListenBtn.disabled = true;
-      enableTextSubmit(false);
-    }
-
-    function submitText() {
-      if (!currentQuestion || awaitingNext) return;
-      const raw = (textFallback.value || "").trim();
-      if (!raw) return;
-      const parsed = parseSpokenChord(raw);
-      if (!parsed) { setStatus(`Couldn’t parse: "${raw}". Try e.g. Bbmaj7, F#min7, E7.`, "bad"); return; }
-      gradeAnswer(parsed.normalized, raw);
+      document.getElementById("scoreNow").textContent = score;
+      document.getElementById("nextBtn").disabled = false;
     }
 
     function renderQuestion() {
-      setStatus("", "");
       awaitingNext = false;
-      nextBtn.disabled = true;
-
       currentQuestion = set[idx];
-      qIdxEl.textContent = (idx + 1).toString();
-      scoreNowEl.textContent = score.toString();
+      document.getElementById("qIdx").textContent = idx + 1;
       document.getElementById("heardText").textContent = "—";
-      textFallback.value = "";
-
-      invShownEl.textContent = `Inv: ${invLabel(currentQuestion.inv)}`;
       drawChord(currentQuestion.root, currentQuestion.qual, currentQuestion.inv);
-
-      playBtn.disabled = false;
-      enableTextSubmit(true);
-      startTimer();
-      updateListenButtons();
-
-      if (document.getElementById("autoListen").checked) {
-        setTimeout(() => { if (currentQuestion && !awaitingNext) startListening(); }, 200);
-      }
+      startTs = performance.now();
+      timerHandle = setInterval(() => {
+        document.getElementById("timeNow").textContent = ((performance.now() - startTs)/1000).toFixed(2);
+      }, 50);
+      document.getElementById("nextBtn").disabled = true;
+      document.getElementById("playBtn").disabled = false;
     }
 
-    function showResults() {
-      const avg = times.reduce((a,b)=>a+b,0) / times.length;
-      resultsEl.innerHTML = `<div><b>Final score:</b> ${score} / ${TOTAL}</div><div><b>Average time:</b> ${avg.toFixed(2)}s</div>`;
-      renderMistakesPanel();
-      practiceMistakesBtn.disabled = mistakeChordMap.size === 0;
-    }
-
-    function renderMistakesPanel() {
-      if (mistakes.length === 0) { mistakesPanelEl.innerHTML = `<div class="small" style="margin-top:8px;">No mistakes 🎉</div>`; return; }
-      const rows = mistakes.map((m, i) => `
-        <tr><td>${i+1}</td><td><b>${m.correctLabel}</b></td><td>${m.parsed}</td><td>${invLabel(m.inv)}</td><td>${m.time.toFixed(2)}s</td></tr>
-      `).join("");
-      mistakesPanelEl.innerHTML = `
-        <h3 style="margin:10px 0 6px; font-size:14px;">Mistakes</h3>
-        <table><thead><tr><th>#</th><th>Correct</th><th>Parsed</th><th>Inv</th><th>Time</th></tr></thead><tbody>${rows}</tbody></table>
-      `;
-    }
-
-    function startSet(fromChords = null) {
-      stopListening();
-      set = buildSetOf10(fromChords);
-      idx = 0; score = 0; times = [];
-      mistakes = []; mistakeChordMap = new Map();
-      currentQuestion = null;
-
-      qIdxEl.textContent = "1";
-      scoreNowEl.textContent = "0";
-      timeNowEl.textContent = "0.00";
-      resultsEl.textContent = "—";
-      mistakesPanelEl.innerHTML = "";
-      practiceMistakesBtn.disabled = true;
-
+    function startSet(chords = null) {
+      initAudio();
+      idx = 0; score = 0; mistakes = [];
+      set = chords || Array.from({length: 10}, () => {
+        const root = pickRandom(getRootPool());
+        const invs = [0, 1, 2].filter(i => document.getElementById("inv" + i).checked);
+        const inv = pickRandom(invs.length ? invs : [0]);
+        const qual = pickRandom(QUALS);
+        return { root, qual, inv, label: root + qual };
+      });
       renderQuestion();
     }
 
-    function nextQuestion() {
-      stopListening();
-      if (timerHandle) { clearInterval(timerHandle); timerHandle = null; }
-      idx += 1;
-      if (idx >= TOTAL) {
-        nextBtn.disabled = true;
-        playBtn.disabled = true;
-        listenBtn.disabled = true;
-        stopListenBtn.disabled = true;
-        enableTextSubmit(false);
-        qIdxEl.textContent = TOTAL.toString();
-        timeNowEl.textContent = "0.00";
-        showResults();
-        return;
-      }
-      renderQuestion();
-    }
-
-    function restart() {
-      stopListening();
-      if (timerHandle) { clearInterval(timerHandle); timerHandle = null; }
-      startTs = null;
-
-      set = []; idx = 0; score = 0; times = [];
-      mistakes = []; mistakeChordMap = new Map();
-      currentQuestion = null;
-
-      qIdxEl.textContent = "0";
-      scoreNowEl.textContent = "0";
-      timeNowEl.textContent = "0.00";
-      invShownEl.textContent = "Inv: —";
-      setStatus("", "");
-      resultsEl.textContent = "Press Start.";
-      mistakesPanelEl.innerHTML = "";
-      document.getElementById("notation").innerHTML = "";
-      document.getElementById("heardText").textContent = "—";
-      textFallback.value = "";
-
-      nextBtn.disabled = true;
-      playBtn.disabled = true;
-      listenBtn.disabled = true;
-      stopListenBtn.disabled = true;
-      enableTextSubmit(false);
-      practiceMistakesBtn.disabled = true;
-
-      updateListenButtons();
-    }
-
-    // checkbox enforcement
-    function enforceAtLeastOneRoot() {
-      const nat = document.getElementById("cbNaturals");
-      const sh  = document.getElementById("cbSharps");
-      const fl  = document.getElementById("cbFlats");
-      if (!nat.checked && !sh.checked && !fl.checked) nat.checked = true;
-    }
-    function enforceAtLeastOneInv() {
-      const a = document.getElementById("inv0");
-      const b = document.getElementById("inv1");
-      const c = document.getElementById("inv2");
-      if (!a.checked && !b.checked && !c.checked) a.checked = true;
-    }
-
-    // Wiring
-    startBtn.onclick = () => startSet();
-    nextBtn.onclick = () => nextQuestion();
-    restartBtn.onclick = () => restart();
-
-    playBtn.onclick = () => playCurrentChord();
-    listenBtn.onclick = () => startListening();
-    stopListenBtn.onclick = () => stopListening();
-    submitTextBtn.onclick = () => submitText();
-
-    enableMicBtn.onclick = () => enableMicOnce();
-    practiceMistakesBtn.onclick = () => startSet(Array.from(mistakeChordMap.values()));
-
-    ["cbNaturals","cbSharps","cbFlats"].forEach(id => {
-      document.getElementById(id).addEventListener("change", () => { enforceAtLeastOneRoot(); restart(); });
-    });
-    ["inv0","inv1","inv2"].forEach(id => {
-      document.getElementById(id).addEventListener("change", () => { enforceAtLeastOneInv(); restart(); });
-    });
-
-    if (!SpeechRecognition) {
-      document.getElementById("heardText").textContent = "SpeechRecognition not supported (use Chrome).";
-      listenBtn.disabled = true;
-    }
-
-    restart();
-  </script>
-</body>
-</html>
+    // Keyboard controls
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "Space" && !isListening && !awaitingNext && currentQuestion) {
+        e.preventDefault();
+        isListening = true;
+        document
