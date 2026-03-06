@@ -286,9 +286,15 @@
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recog = null, isListening = false;
     async function initMic() {
+      const micStatusEl = document.getElementById("micState");
       try {
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-        document.getElementById("micState").textContent = "Mic: Ready (Spacebar)";
+        micStatusEl.textContent = "Mic: Requesting permission...";
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        // If we get here, the user allowed the mic
+        micStatusEl.textContent = "Mic: Ready (Spacebar)";
+        micStatusEl.style.color = "#0a7a2f"; // Green for success
+
         if (SpeechRecognition) {
           recog = new SpeechRecognition();
           recog.lang = "en-US";
@@ -298,11 +304,27 @@
             document.getElementById("heardText").textContent = transcript;
             if (e.results[e.results.length - 1].isFinal) handleFinalSpeech(transcript);
           };
+          
+          // Keep recognition alive if it stops unexpectedly
+          recog.onend = () => { if(isListening) recog.start(); };
         }
       } catch (e) {
-        document.getElementById("micState").textContent = "Mic: Blocked";
+        console.error("Mic Error:", e);
+        micStatusEl.textContent = "Mic: Denied/Error";
+        micStatusEl.style.color = "#b00020"; // Red for error
+        setStatus("Please enable microphone access in your browser settings.", "bad");
       }
     }
+
+    // UPDATED: Auto-init mic on first click anywhere
+    const initAll = async () => {
+      await initAudio();
+      await initMic();
+      // Remove the listener so it doesn't run every time you click
+      window.removeEventListener("mousedown", initAll);
+    };
+    
+    window.addEventListener("mousedown", initAll);
 
     function handleFinalSpeech(text) {
       const parsed = parseSpokenChord(text);
@@ -379,3 +401,4 @@
         e.preventDefault();
         isListening = true;
         document
+
