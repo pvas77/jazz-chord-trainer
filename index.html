@@ -87,9 +87,12 @@
     .bad { color: #b00020; }
 
     table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-    th, td { text-align: left; padding: 6px; border-bottom: 1px solid #eee; font-size: 12px; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #eee; font-size: 13px; }
+    th { font-weight: 700; background: #fcfcfc; color: #444; border-bottom: 2px solid #eee; }
     
-    code { background: #eee; padding: 2px 4px; border-radius: 4px; font-weight: bold; }
+    .dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; }
+    .dot-green { background-color: #0a7a2f; }
+    .dot-red { background-color: #b00020; }
 
     #micPulse {
       display: inline-block;
@@ -157,7 +160,7 @@
         <div class="meta">
           <div class="pill">Q: <span id="qIdx">0</span>/10</div>
           <div class="pill">Time: <span id="timeNow">0.00</span>s</div>
-          <div class="pill">Score: <span id="scoreNow">0</span></div>
+          <div class="pill">Score: <span id="scoreNow">0/0</span></div>
         </div>
 
         <div class="transcript" id="micIndicator">
@@ -184,9 +187,19 @@
     <div class="card">
       <div class="cardBody">
         <h3 style="margin:0 0 6px; font-size:14px;">Results</h3>
-        <div id="results" class="small">Press <b>Start</b>.</div>
-        <div id="mistakesPanel"></div>
-        <div class="controls" style="margin-top:10px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Chord shown</th>
+              <th>You said</th>
+              <th>Result</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody">
+            </tbody>
+        </table>
+        
+        <div class="controls" style="margin-top:15px;">
           <button id="practiceMistakesBtn" disabled>Practice mistakes</button>
         </div>
       </div>
@@ -298,26 +311,35 @@
 
     function handleAnswer(text) {
       if (awaitingNext || !currentQuestion) return;
+      
       const parsedGuess = parseSpokenChord(text);
-      if (parsedGuess === currentQuestion.label) {
+      const correctAnswer = currentQuestion.label;
+      const resultsBody = document.getElementById("resultsBody");
+      const tr = document.createElement("tr");
+
+      if (parsedGuess === correctAnswer) {
         score++;
         document.getElementById("status").textContent = "✔ Correct!";
         document.getElementById("status").className = "status ok";
+        tr.innerHTML = `<td>${correctAnswer}</td><td>${text}</td><td><span class="dot dot-green"></span></td>`;
         finishQuestion();
       } else if (parsedGuess) {
-        document.getElementById("status").textContent = `✘ Wrong. Was ${currentQuestion.label}`;
+        document.getElementById("status").textContent = `✘ Wrong. Was ${correctAnswer}`;
         document.getElementById("status").className = "status bad";
         mistakes.push(currentQuestion);
+        tr.innerHTML = `<td>${correctAnswer}</td><td>${text}</td><td><span class="dot dot-red"></span></td>`;
         finishQuestion();
       } else {
         document.getElementById("status").textContent = "Try again (say the full name)...";
+        return; // Don't record in table yet if we didn't understand anything
       }
+      resultsBody.appendChild(tr);
     }
 
     function finishQuestion() {
       awaitingNext = true;
       clearInterval(timerHandle);
-      document.getElementById("scoreNow").textContent = score;
+      document.getElementById("scoreNow").textContent = `${score}/${idx + 1}`;
       document.getElementById("nextBtn").disabled = false;
     }
 
@@ -339,6 +361,9 @@
     function startSet(chords = null) {
       initTools().then(() => {
         idx = 0; score = 0; mistakes = [];
+        document.getElementById("resultsBody").innerHTML = ""; // Clear table
+        document.getElementById("scoreNow").textContent = "0/0";
+
         const trebleOk = document.getElementById("cbTreble").checked;
         const bassOk = document.getElementById("cbBass").checked;
         set = chords || Array.from({length: 10}, () => {
@@ -363,7 +388,6 @@
         idx++;
         if (idx < 10) renderQuestion();
         else {
-          document.getElementById("results").innerHTML = `Score: ${score}/10`;
           document.getElementById("practiceMistakesBtn").disabled = mistakes.length === 0;
         }
       }
