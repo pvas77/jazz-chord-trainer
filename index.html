@@ -313,7 +313,6 @@
       const resultsBody = document.getElementById("resultsBody");
       const tr = document.createElement("tr");
 
-      // Record logic: even if parsedGuess is null, we show what you said as a red result
       if (parsedGuess === correctAnswer) {
         score++;
         document.getElementById("status").textContent = "✔ Correct!";
@@ -370,12 +369,15 @@
       });
     }
 
+    // Spacebar Logic: Block browser default button hijacking
     window.addEventListener("keydown", (e) => {
-      if (e.code === "Space" && !isListening && !awaitingNext && currentQuestion) {
-        e.preventDefault();
-        isListening = true;
-        document.getElementById("micIndicator").classList.add("listening");
-        try { recog?.start(); } catch(err) {}
+      if (e.code === "Space") {
+        e.preventDefault(); // Stop space from clicking focused buttons
+        if (!isListening && !awaitingNext && currentQuestion) {
+          isListening = true;
+          document.getElementById("micIndicator").classList.add("listening");
+          try { recog?.start(); } catch(err) {}
+        }
       }
       if (e.code === "Enter" && !document.getElementById("nextBtn").disabled) {
         idx++;
@@ -387,24 +389,30 @@
     });
 
     window.addEventListener("keyup", (e) => {
-      if (e.code === "Space" && isListening) {
-        isListening = false;
-        document.getElementById("micIndicator").classList.remove("listening");
-        recog?.stop();
+      if (e.code === "Space") {
+        e.preventDefault();
+        if (isListening) {
+          isListening = false;
+          document.getElementById("micIndicator").classList.remove("listening");
+          recog?.stop();
+        }
       }
     });
 
-    document.getElementById("startBtn").onclick = () => startSet();
-    document.getElementById("playBtn").onclick = () => {
-      const notes = chordToSpelledNotes(currentQuestion.root, currentQuestion.qual, currentQuestion.inv, currentQuestion.clef).map(n => n.name + n.octave);
-      synth.triggerAttackRelease(notes, "1n");
+    // Remove focus from buttons after clicking so Spacebar doesn't trigger them
+    document.getElementById("startBtn").onclick = (e) => { e.target.blur(); startSet(); };
+    document.getElementById("playBtn").onclick = (e) => { 
+        e.target.blur();
+        const notes = chordToSpelledNotes(currentQuestion.root, currentQuestion.qual, currentQuestion.inv, currentQuestion.clef).map(n => n.name + n.octave);
+        synth.triggerAttackRelease(notes, "1n");
     };
-    document.getElementById("nextBtn").onclick = () => {
+    document.getElementById("nextBtn").onclick = (e) => {
+      e.target.blur();
       idx++;
       if (idx < 10) renderQuestion();
     };
     document.getElementById("restartBtn").onclick = () => location.reload();
-    document.getElementById("practiceMistakesBtn").onclick = () => startSet(mistakes);
+    document.getElementById("practiceMistakesBtn").onclick = (e) => { e.target.blur(); startSet(mistakes); };
   </script>
 </body>
 </html>
