@@ -32,14 +32,13 @@
     .block h4 { margin: 0 0 6px; font-size: 12px; color: #111; }
     .checkrow { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
     label { font-size: 12px; color: #333; user-select: none; cursor: pointer; }
-    .hint { margin-top: 4px; color: #777; font-size: 11px; }
     .small { font-size: 12px; color: #555; }
 
     .layout {
       display: grid;
       grid-template-columns: 1.15fr 1fr;
       gap: 12px;
-      height: calc(100vh - 160px);
+      height: calc(100vh - 180px);
       min-height: 350px;
     }
 
@@ -50,7 +49,6 @@
       height: 100%;
       display: flex;
       flex-direction: column;
-      min-height: 0;
       background: #fff;
     }
 
@@ -64,6 +62,7 @@
       background: #fafafa;
       display: flex;
       justify-content: center;
+      min-height: 150px;
     }
 
     .meta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; color: #333; }
@@ -71,43 +70,42 @@
 
     .controls { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
     button {
-      padding: 8px 12px;
+      padding: 8px 16px;
       border-radius: 10px;
       border: 1px solid #ccc;
       background: white;
       cursor: pointer;
-      font-size: 13px;
-      transition: all 0.2s;
+      font-size: 14px;
+      font-weight: 500;
     }
-    button:hover:not(:disabled) { background: #f0f0f0; border-color: #999; }
     button.primary { background: #111; color: #fff; border-color: #111; }
-    button.primary:hover:not(:disabled) { background: #333; }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    input[type="text"] {
-      padding: 8px 10px;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-      background: white;
-      font-size: 13px;
-    }
-
-    .transcript { margin-top: 10px; font-size: 14px; color: #222; min-height: 20px; font-weight: 500; }
+    .transcript { margin-top: 10px; font-size: 16px; color: #222; min-height: 24px; font-weight: 600; }
     .status { margin-top: 6px; min-height: 18px; font-weight: 700; font-size: 13px; }
     .ok { color: #0a7a2f; }
     .bad { color: #b00020; }
 
     table { width: 100%; border-collapse: collapse; margin-top: 8px; }
     th, td { text-align: left; padding: 6px; border-bottom: 1px solid #eee; font-size: 12px; }
-    th { font-weight: 700; background: #fcfcfc; }
-
+    
     code { background: #eee; padding: 2px 4px; border-radius: 4px; font-weight: bold; }
+
+    #micPulse {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      background: red;
+      border-radius: 50%;
+      margin-right: 8px;
+      visibility: hidden;
+    }
+    .listening #micPulse { visibility: visible; animation: pulse 1s infinite; }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 
     @media (max-width: 980px) {
       body { overflow: auto; }
       .layout { grid-template-columns: 1fr; height: auto; }
-      .card { height: auto; }
-      .cardBody { overflow: visible; }
     }
   </style>
 </head>
@@ -126,10 +124,10 @@
     </div>
 
     <div class="block">
-      <h4>Clef</h4>
+      <h4>Clef (select one or both)</h4>
       <div class="checkrow">
-        <label><input type="radio" name="clef" id="clefTreble" checked> Treble</label>
-        <label><input type="radio" name="clef" id="clefBass"> Bass</label>
+        <label><input type="checkbox" id="cbTreble" checked> Treble</label>
+        <label><input type="checkbox" id="cbBass"> Bass</label>
       </div>
     </div>
 
@@ -145,7 +143,7 @@
     <div class="block">
       <h4>How to answer</h4>
       <div class="small">
-        Hold <code>SPACE</code> to talk. Release to submit.<br/>
+        Press <b>Start</b>. Then <b>Hold SPACE</b> to talk.<br/>
         Say <code>Bbmaj7</code> or “B flat major seven”.
       </div>
     </div>
@@ -163,12 +161,12 @@
         </div>
 
         <div class="transcript" id="micIndicator">
-          Heard: <span id="heardText">—</span>
+          <span id="micPulse"></span>Heard: <span id="heardText">—</span>
         </div>
 
         <div class="controls" style="margin-top:20px;">
           <button id="playBtn" disabled>🔊 Play Chord</button>
-          <span class="small" id="micState" style="margin-left:auto;">Mic: initializing...</span>
+          <span class="small" id="micState" style="margin-left:auto; font-weight: bold;">Mic: Inactive</span>
         </div>
 
         <div class="status" id="status"></div>
@@ -176,9 +174,9 @@
 
       <div class="cardFooter">
         <div class="controls">
-          <button class="primary" id="startBtn">Start Quiz</button>
-          <button id="nextBtn" disabled>Next Chord (Enter)</button>
-          <button id="restartBtn">Restart</button>
+          <button class="primary" id="startBtn">Start Quiz & Enable Mic</button>
+          <button id="nextBtn" disabled>Next (Enter)</button>
+          <button id="restartBtn">Reset</button>
         </div>
       </div>
     </div>
@@ -186,7 +184,7 @@
     <div class="card">
       <div class="cardBody">
         <h3 style="margin:0 0 6px; font-size:14px;">Results</h3>
-        <div id="results" class="small">Press <b>Start Quiz</b>.</div>
+        <div id="results" class="small">Press <b>Start</b>.</div>
         <div id="mistakesPanel"></div>
         <div class="controls" style="margin-top:10px;">
           <button id="practiceMistakesBtn" disabled>Practice mistakes</button>
@@ -203,10 +201,17 @@
     const ROOTS_SHARP = ["C#","D#","F#","G#","A#"];
     const ROOTS_FLAT  = ["Db","Eb","Gb","Ab","Bb"];
     const QUALS = ["maj7","min7","7"];
-    const TOTAL = 10;
+    const PC = { "C":0, "C#":1, "Db":1, "D":2, "D#":3, "Eb":3, "E":4, "F":5, "F#":6, "Gb":6, "G":7, "G#":8, "Ab":8, "A":9, "A#":10, "Bb":10, "B":11 };
+    const SPELL_SHARP = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+    const SPELL_FLAT  = ["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"];
+
+    let set = [], idx = 0, score = 0, mistakes = [], currentQuestion = null;
+    let startTs = null, timerHandle = null, awaitingNext = false;
+    let synth = null, recog = null, isListening = false;
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
     function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
-    function chordLabel(root, qual) { return root + qual; }
 
     function getRootPool() {
       const nat = document.getElementById("cbNaturals").checked;
@@ -219,151 +224,84 @@
       return pool.length === 0 ? ROOTS_NAT : pool;
     }
 
-    const PC = { "C":0, "C#":1, "Db":1, "D":2, "D#":3, "Eb":3, "E":4, "F":5, "F#":6, "Gb":6, "G":7, "G#":8, "Ab":8, "A":9, "A#":10, "Bb":10, "B":11 };
-    const SPELL_SHARP = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
-    const SPELL_FLAT  = ["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"];
-
-    function intervalsFor(qual) {
-      if (qual === "maj7") return [0, 4, 7, 11];
-      if (qual === "min7") return [0, 3, 7, 10];
-      return [0, 4, 7, 10];
-    }
-    function rotate(arr, n) {
-      const k = ((n % arr.length) + arr.length) % arr.length;
-      return arr.slice(k).concat(arr.slice(0, k));
-    }
-
-    function chordToSpelledNotes(root, qual, inversion) {
+    function chordToSpelledNotes(root, qual, inversion, clef) {
       const rootPc = PC[root];
       const useFlat = root.includes("b") && !root.includes("#");
       const spell = useFlat ? SPELL_FLAT : SPELL_SHARP;
-      const pcs0 = intervalsFor(qual).map(semi => (rootPc + semi) % 12);
-      const names0 = pcs0.map(p => spell[p]);
-      const names = rotate(names0, inversion);
+      const intervals = qual === "maj7" ? [0,4,7,11] : (qual === "min7" ? [0,3,7,10] : [0,4,7,10]);
+      const names = rotate(intervals.map(s => spell[(rootPc + s) % 12]), inversion);
       
-      const isBass = document.getElementById("clefBass").checked;
-      let octave = isBass ? 2 : 4; 
-      
+      let octave = (clef === "bass") ? 2 : 4;
       let prevMidi = null;
-      const out = [];
-      for (const nm of names) {
+      return names.map(nm => {
         let m = (octave * 12) + PC[nm];
-        while (prevMidi !== null && m <= prevMidi) {
-          octave += 1;
-          m = (octave * 12) + PC[nm];
-        }
+        while (prevMidi !== null && m <= prevMidi) { octave++; m = (octave * 12) + PC[nm]; }
         prevMidi = m;
-        out.push({ name: nm, octave });
-      }
-      return out;
+        return { name: nm, octave };
+      });
     }
 
-    let VF = Vex.Flow, renderer = null, context = null;
-    function drawChord(root, qual, inversion) {
+    function rotate(arr, n) { return arr.slice(n).concat(arr.slice(0, n)); }
+
+    function drawChord(q) {
       const div = document.getElementById("notation");
       div.innerHTML = "";
-      renderer = new VF.Renderer(div, VF.Renderer.Backends.SVG);
+      const renderer = new Vex.Flow.Renderer(div, Vex.Flow.Renderer.Backends.SVG);
       renderer.resize(400, 150);
-      context = renderer.getContext();
-      const clef = document.getElementById("clefBass").checked ? "bass" : "treble";
-      const stave = new VF.Stave(10, 10, 350).addClef(clef).setContext(context).draw();
-      const notes = chordToSpelledNotes(root, qual, inversion);
-      const keys = notes.map(n => `${n.name[0].toLowerCase()}/${n.octave}`);
-      const chordNote = new VF.StaveNote({ clef, keys, duration: "w" });
-      notes.forEach((n, idx) => {
-        if (n.name.includes("#")) chordNote.addModifier(new VF.Accidental("#"), idx);
-        if (n.name.includes("b")) chordNote.addModifier(new VF.Accidental("b"), idx);
-      });
-      VF.Formatter.FormatAndDraw(context, stave, [chordNote]);
+      const context = renderer.getContext();
+      const stave = new Vex.Flow.Stave(10, 10, 350).addClef(q.clef).setContext(context).draw();
+      const notes = chordToSpelledNotes(q.root, q.qual, q.inv, q.clef);
+      const chordNote = new Vex.Flow.StaveNote({ clef: q.clef, keys: notes.map(n => `${n.name[0].toLowerCase()}/${n.octave}`), duration: "w" });
+      notes.forEach((n, i) => { if(n.name.length > 1) chordNote.addModifier(new Vex.Flow.Accidental(n.name[1]), i); });
+      Vex.Flow.Formatter.FormatAndDraw(context, stave, [chordNote]);
     }
 
-    let synth = null;
-    async function initAudio() {
-      if (Tone.context.state !== "running") await Tone.start();
-      if (!synth) synth = new Tone.PolySynth(Tone.Synth).toDestination();
-    }
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let recog = null, isListening = false;
-    async function initMic() {
-      const micStatusEl = document.getElementById("micState");
-      try {
-        micStatusEl.textContent = "Mic: Requesting permission...";
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        
-        // If we get here, the user allowed the mic
-        micStatusEl.textContent = "Mic: Ready (Spacebar)";
-        micStatusEl.style.color = "#0a7a2f"; // Green for success
-
-        if (SpeechRecognition) {
+    async function initTools() {
+      // Audio
+      if (!synth) {
+        await Tone.start();
+        synth = new Tone.PolySynth(Tone.Synth).toDestination();
+      }
+      // Mic
+      if (!recog && SpeechRecognition) {
+        try {
+          await navigator.mediaDevices.getUserMedia({ audio: true });
           recog = new SpeechRecognition();
           recog.lang = "en-US";
           recog.interimResults = true;
           recog.onresult = (e) => {
             const transcript = e.results[e.results.length - 1][0].transcript;
             document.getElementById("heardText").textContent = transcript;
-            if (e.results[e.results.length - 1].isFinal) handleFinalSpeech(transcript);
+            if (e.results[e.results.length - 1].isFinal) handleAnswer(transcript);
           };
-          
-          // Keep recognition alive if it stops unexpectedly
-          recog.onend = () => { if(isListening) recog.start(); };
+          document.getElementById("micState").textContent = "Mic: Ready (Spacebar)";
+          document.getElementById("micState").style.color = "green";
+        } catch (e) {
+          document.getElementById("micState").textContent = "Mic: Error/Denied";
+          document.getElementById("micState").style.color = "red";
         }
-      } catch (e) {
-        console.error("Mic Error:", e);
-        micStatusEl.textContent = "Mic: Denied/Error";
-        micStatusEl.style.color = "#b00020"; // Red for error
-        setStatus("Please enable microphone access in your browser settings.", "bad");
       }
     }
 
-    // UPDATED: Auto-init mic on first click anywhere
-    const initAll = async () => {
-      await initAudio();
-      await initMic();
-      // Remove the listener so it doesn't run every time you click
-      window.removeEventListener("mousedown", initAll);
-    };
-    
-    window.addEventListener("mousedown", initAll);
-
-    function handleFinalSpeech(text) {
-      const parsed = parseSpokenChord(text);
-      if (parsed) gradeAnswer(parsed.normalized);
-      else setStatus(`Couldn't understand "${text}"`, "bad");
-    }
-
-    function parseSpokenChord(text) {
-      let s = text.toLowerCase().trim().replace(/major/g, "maj").replace(/minor/g, "min");
-      const m = s.match(/([a-g])\s?(flat|sharp|#|b)?\s?(maj7|min7|7)/i);
-      if (m) {
-        let root = m[1].toUpperCase();
-        if (m[2]) root += (m[2].startsWith("f") || m[2] === "b") ? "b" : "#";
-        return { normalized: root + m[3] };
-      }
-      return null;
-    }
-
-    let set = [], idx = 0, score = 0, times = [], mistakes = [], currentQuestion = null;
-    let startTs = null, timerHandle = null, awaitingNext = false;
-
-    function setStatus(msg, cls) {
-      const s = document.getElementById("status");
-      s.textContent = msg;
-      s.className = "status " + (cls || "");
-    }
-
-    function gradeAnswer(guess) {
+    function handleAnswer(text) {
       if (awaitingNext || !currentQuestion) return;
-      awaitingNext = true;
-      const t = (performance.now() - startTs) / 1000;
-      clearInterval(timerHandle);
-      if (guess === currentQuestion.label) {
+      let s = text.toLowerCase().trim().replace(/major/g, "maj").replace(/minor/g, "min").replace(/\s/g, "");
+      if (s.includes(currentQuestion.label.toLowerCase())) {
         score++;
-        setStatus(`✔ Correct (${t.toFixed(2)}s)`, "ok");
+        document.getElementById("status").textContent = "✔ Correct!";
+        document.getElementById("status").className = "status ok";
+        finishQuestion();
       } else {
-        setStatus(`✘ Wrong. Was ${currentQuestion.label}`, "bad");
-        mistakes.push({ q: currentQuestion.label, got: guess });
+        document.getElementById("status").textContent = `✘ Wrong. Was ${currentQuestion.label}`;
+        document.getElementById("status").className = "status bad";
+        mistakes.push(currentQuestion);
+        finishQuestion();
       }
+    }
+
+    function finishQuestion() {
+      awaitingNext = true;
+      clearInterval(timerHandle);
       document.getElementById("scoreNow").textContent = score;
       document.getElementById("nextBtn").disabled = false;
     }
@@ -373,7 +311,8 @@
       currentQuestion = set[idx];
       document.getElementById("qIdx").textContent = idx + 1;
       document.getElementById("heardText").textContent = "—";
-      drawChord(currentQuestion.root, currentQuestion.qual, currentQuestion.inv);
+      document.getElementById("status").textContent = "";
+      drawChord(currentQuestion);
       startTs = performance.now();
       timerHandle = setInterval(() => {
         document.getElementById("timeNow").textContent = ((performance.now() - startTs)/1000).toFixed(2);
@@ -383,22 +322,59 @@
     }
 
     function startSet(chords = null) {
-      initAudio();
-      idx = 0; score = 0; mistakes = [];
-      set = chords || Array.from({length: 10}, () => {
-        const root = pickRandom(getRootPool());
-        const invs = [0, 1, 2].filter(i => document.getElementById("inv" + i).checked);
-        const inv = pickRandom(invs.length ? invs : [0]);
-        const qual = pickRandom(QUALS);
-        return { root, qual, inv, label: root + qual };
+      initTools().then(() => {
+        idx = 0; score = 0; mistakes = [];
+        const trebleOk = document.getElementById("cbTreble").checked;
+        const bassOk = document.getElementById("cbBass").checked;
+        
+        set = chords || Array.from({length: 10}, () => {
+          const root = pickRandom(getRootPool());
+          const qual = pickRandom(QUALS);
+          const invs = [0,1,2].filter(i => document.getElementById("inv" + i).checked);
+          const clef = (trebleOk && bassOk) ? pickRandom(["treble", "bass"]) : (bassOk ? "bass" : "treble");
+          return { root, qual, inv: pickRandom(invs.length ? invs : [0]), clef, label: root + qual };
+        });
+        renderQuestion();
       });
-      renderQuestion();
     }
 
-    // Keyboard controls
+    // Controls
     window.addEventListener("keydown", (e) => {
       if (e.code === "Space" && !isListening && !awaitingNext && currentQuestion) {
         e.preventDefault();
         isListening = true;
-        document
+        document.getElementById("micIndicator").classList.add("listening");
+        try { recog?.start(); } catch(err) {}
+      }
+      if (e.code === "Enter" && !document.getElementById("nextBtn").disabled) {
+        idx++;
+        if (idx < 10) renderQuestion();
+        else {
+          document.getElementById("results").innerHTML = `Score: ${score}/10`;
+          document.getElementById("practiceMistakesBtn").disabled = mistakes.length === 0;
+        }
+      }
+    });
 
+    window.addEventListener("keyup", (e) => {
+      if (e.code === "Space" && isListening) {
+        isListening = false;
+        document.getElementById("micIndicator").classList.remove("listening");
+        recog?.stop();
+      }
+    });
+
+    document.getElementById("startBtn").onclick = () => startSet();
+    document.getElementById("playBtn").onclick = () => {
+      const notes = chordToSpelledNotes(currentQuestion.root, currentQuestion.qual, currentQuestion.inv, currentQuestion.clef).map(n => n.name + n.octave);
+      synth.triggerAttackRelease(notes, "1n");
+    };
+    document.getElementById("nextBtn").onclick = () => {
+      idx++;
+      if (idx < 10) renderQuestion();
+    };
+    document.getElementById("restartBtn").onclick = () => location.reload();
+    document.getElementById("practiceMistakesBtn").onclick = () => startSet(mistakes);
+  </script>
+</body>
+</html>
