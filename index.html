@@ -87,10 +87,10 @@
     .bad { color: #b00020; }
 
     table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #eee; font-size: 13px; }
-    th { font-weight: 700; background: #fcfcfc; color: #444; border-bottom: 2px solid #eee; }
+    th, td { text-align: left; padding: 10px 6px; border-bottom: 1px solid #eee; font-size: 13px; }
+    th { font-weight: 700; background: #fcfcfc; color: #444; border-bottom: 2px solid #ddd; }
     
-    .dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; }
+    .dot { height: 12px; width: 12px; border-radius: 50%; display: inline-block; }
     .dot-green { background-color: #0a7a2f; }
     .dot-red { background-color: #b00020; }
 
@@ -186,7 +186,7 @@
 
     <div class="card">
       <div class="cardBody">
-        <h3 style="margin:0 0 6px; font-size:14px;">Results</h3>
+        <h3 style="margin:0 0 10px; font-size:14px;">Results Log</h3>
         <table>
           <thead>
             <tr>
@@ -195,10 +195,8 @@
               <th>Result</th>
             </tr>
           </thead>
-          <tbody id="resultsBody">
-            </tbody>
+          <tbody id="resultsBody"></tbody>
         </table>
-        
         <div class="controls" style="margin-top:15px;">
           <button id="practiceMistakesBtn" disabled>Practice mistakes</button>
         </div>
@@ -243,7 +241,6 @@
       const spell = useFlat ? SPELL_FLAT : SPELL_SHARP;
       const intervals = qual === "maj7" ? [0,4,7,11] : (qual === "min7" ? [0,3,7,10] : [0,4,7,10]);
       const names = rotate(intervals.map(s => spell[(rootPc + s) % 12]), inversion);
-      
       let octave = (clef === "bass") ? 2 : 4;
       let prevMidi = null;
       return names.map(nm => {
@@ -311,29 +308,26 @@
 
     function handleAnswer(text) {
       if (awaitingNext || !currentQuestion) return;
-      
       const parsedGuess = parseSpokenChord(text);
       const correctAnswer = currentQuestion.label;
       const resultsBody = document.getElementById("resultsBody");
       const tr = document.createElement("tr");
 
+      // Record logic: even if parsedGuess is null, we show what you said as a red result
       if (parsedGuess === correctAnswer) {
         score++;
         document.getElementById("status").textContent = "✔ Correct!";
         document.getElementById("status").className = "status ok";
         tr.innerHTML = `<td>${correctAnswer}</td><td>${text}</td><td><span class="dot dot-green"></span></td>`;
-        finishQuestion();
-      } else if (parsedGuess) {
+      } else {
         document.getElementById("status").textContent = `✘ Wrong. Was ${correctAnswer}`;
         document.getElementById("status").className = "status bad";
         mistakes.push(currentQuestion);
-        tr.innerHTML = `<td>${correctAnswer}</td><td>${text}</td><td><span class="dot dot-red"></span></td>`;
-        finishQuestion();
-      } else {
-        document.getElementById("status").textContent = "Try again (say the full name)...";
-        return; // Don't record in table yet if we didn't understand anything
+        tr.innerHTML = `<td>${correctAnswer}</td><td>${text || "—"}</td><td><span class="dot dot-red"></span></td>`;
       }
+      
       resultsBody.appendChild(tr);
+      finishQuestion();
     }
 
     function finishQuestion() {
@@ -361,9 +355,8 @@
     function startSet(chords = null) {
       initTools().then(() => {
         idx = 0; score = 0; mistakes = [];
-        document.getElementById("resultsBody").innerHTML = ""; // Clear table
+        document.getElementById("resultsBody").innerHTML = ""; 
         document.getElementById("scoreNow").textContent = "0/0";
-
         const trebleOk = document.getElementById("cbTreble").checked;
         const bassOk = document.getElementById("cbBass").checked;
         set = chords || Array.from({length: 10}, () => {
