@@ -257,12 +257,10 @@
     }
 
     async function initTools() {
-      // Audio
       if (!synth) {
         await Tone.start();
         synth = new Tone.PolySynth(Tone.Synth).toDestination();
       }
-      // Mic
       if (!recog && SpeechRecognition) {
         try {
           await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -283,19 +281,36 @@
       }
     }
 
+    function parseSpokenChord(text) {
+      let s = text.toLowerCase().trim().replace(/[-,]/g, " ").replace(/\s+/g, " ");
+      const rootMatch = s.match(/\b([a-g])\b/i);
+      if (!rootMatch) return null;
+      let root = rootMatch[1].toUpperCase();
+      if (s.includes("flat") || s.includes(" b ")) root += "b";
+      else if (s.includes("sharp") || s.includes("#")) root += "#";
+      let qual = "";
+      if (s.includes("major") && (s.includes("seven") || s.includes("7"))) qual = "maj7";
+      else if ((s.includes("minor") || s.includes("min")) && (s.includes("seven") || s.includes("7"))) qual = "min7";
+      else if (s.includes("seven") || s.includes("7") || s.includes("dominant")) qual = "7";
+      if (!qual) return null;
+      return root + qual;
+    }
+
     function handleAnswer(text) {
       if (awaitingNext || !currentQuestion) return;
-      let s = text.toLowerCase().trim().replace(/major/g, "maj").replace(/minor/g, "min").replace(/\s/g, "");
-      if (s.includes(currentQuestion.label.toLowerCase())) {
+      const parsedGuess = parseSpokenChord(text);
+      if (parsedGuess === currentQuestion.label) {
         score++;
         document.getElementById("status").textContent = "✔ Correct!";
         document.getElementById("status").className = "status ok";
         finishQuestion();
-      } else {
+      } else if (parsedGuess) {
         document.getElementById("status").textContent = `✘ Wrong. Was ${currentQuestion.label}`;
         document.getElementById("status").className = "status bad";
         mistakes.push(currentQuestion);
         finishQuestion();
+      } else {
+        document.getElementById("status").textContent = "Try again (say the full name)...";
       }
     }
 
@@ -326,7 +341,6 @@
         idx = 0; score = 0; mistakes = [];
         const trebleOk = document.getElementById("cbTreble").checked;
         const bassOk = document.getElementById("cbBass").checked;
-        
         set = chords || Array.from({length: 10}, () => {
           const root = pickRandom(getRootPool());
           const qual = pickRandom(QUALS);
@@ -338,7 +352,6 @@
       });
     }
 
-    // Controls
     window.addEventListener("keydown", (e) => {
       if (e.code === "Space" && !isListening && !awaitingNext && currentQuestion) {
         e.preventDefault();
