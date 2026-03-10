@@ -146,8 +146,8 @@
     <div class="block">
       <h4>How to answer</h4>
       <div class="small">
-        Press <b>Start</b>. Then <b>Hold SPACE</b> to talk.<br/>
-        3 attempts per chord. Say <code>Bbmaj7</code>.
+        Hold <b>SPACE</b> to talk. 3 attempts per chord.<br/>
+        Goal: 10 correct answers.
       </div>
     </div>
   </div>
@@ -187,6 +187,7 @@
     <div class="card">
       <div class="cardBody">
         <h3 style="margin:0 0 10px; font-size:14px;">Results Log</h3>
+        <div id="sessionStats" class="small" style="margin-bottom:10px; color:#111; font-weight:bold;"></div>
         <table>
           <thead>
             <tr>
@@ -208,17 +209,14 @@
   <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
 
   <script>
-    const ROOTS_NAT = ["C","D","E","F","G","A","B"];
-    const ROOTS_SHARP = ["C#","D#","F#","G#","A#"];
-    const ROOTS_FLAT  = ["Db","Eb","Gb","Ab","Bb"];
-    const QUALS = ["maj7","min7","7"];
     const PC = { "C":0, "C#":1, "Db":1, "D":2, "D#":3, "Eb":3, "E":4, "F":5, "F#":6, "Gb":6, "G":7, "G#":8, "Ab":8, "A":9, "A#":10, "Bb":10, "B":11 };
     const SPELL_SHARP = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
     const SPELL_FLAT  = ["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"];
 
     let set = [], idx = 0, score = 0, mistakes = [], currentQuestion = null;
-    let attemptsForCurrent = 0;
+    let attemptsForCurrent = 0, correctTimes = [];
     let startTs = null, timerHandle = null, awaitingNext = false;
+    let sessionStartTs = null; 
     let synth = null, recog = null, isListening = false;
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -226,22 +224,18 @@
     function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
     function getRootPool() {
-      const nat = document.getElementById("cbNaturals").checked;
-      const sh  = document.getElementById("cbSharps").checked;
-      const fl  = document.getElementById("cbFlats").checked;
       let pool = [];
-      if (nat) pool = pool.concat(ROOTS_NAT);
-      if (sh)  pool = pool.concat(ROOTS_SHARP);
-      if (fl)  pool = pool.concat(ROOTS_FLAT);
-      return pool.length === 0 ? ROOTS_NAT : pool;
+      if (document.getElementById("cbNaturals").checked) pool = pool.concat(["C","D","E","F","G","A","B"]);
+      if (document.getElementById("cbSharps").checked) pool = pool.concat(["C#","D#","F#","G#","A#"]);
+      if (document.getElementById("cbFlats").checked) pool = pool.concat(["Db","Eb","Gb","Ab","Bb"]);
+      return pool.length === 0 ? ["C"] : pool;
     }
 
     function chordToSpelledNotes(root, qual, inversion, clef) {
       const rootPc = PC[root];
-      const useFlat = root.includes("b") && !root.includes("#");
-      const spell = useFlat ? SPELL_FLAT : SPELL_SHARP;
+      const spell = (root.includes("b") && !root.includes("#")) ? SPELL_FLAT : SPELL_SHARP;
       const intervals = qual === "maj7" ? [0,4,7,11] : (qual === "min7" ? [0,3,7,10] : [0,4,7,10]);
-      const names = rotate(intervals.map(s => spell[(rootPc + s) % 12]), inversion);
+      const names = intervals.map(s => spell[(rootPc + s) % 12]).slice(inversion).concat(intervals.map(s => spell[(rootPc + s) % 12]).slice(0, inversion));
       let octave = (clef === "bass") ? 2 : 4;
       let prevMidi = null;
       return names.map(nm => {
@@ -251,8 +245,6 @@
         return { name: nm, octave };
       });
     }
-
-    function rotate(arr, n) { return arr.slice(n).concat(arr.slice(0, n)); }
 
     function drawChord(q) {
       const div = document.getElementById("notation");
@@ -268,9 +260,7 @@
     }
 
     async function initTools() {
-      if (!synth) {
-        try { await Tone.start(); synth = new Tone.PolySynth(Tone.Synth).toDestination(); } catch(e){}
-      }
+      if (!synth) { try { await Tone.start(); synth = new Tone.PolySynth(Tone.Synth).toDestination(); } catch(e){} }
       if (!recog && SpeechRecognition) {
         try {
           await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -302,29 +292,28 @@
       if (s.includes("major") && (s.includes("seven") || s.includes("7"))) qual = "maj7";
       else if ((s.includes("minor") || s.includes("min")) && (s.includes("seven") || s.includes("7"))) qual = "min7";
       else if (s.includes("seven") || s.includes("7") || s.includes("dominant")) qual = "7";
-      if (!qual) return null;
-      return root + qual;
+      return qual ? root + qual : null;
     }
 
     function handleAnswer(text) {
       if (awaitingNext || !currentQuestion) return;
-      
       attemptsForCurrent++;
       const parsedGuess = parseSpokenChord(text);
       const correctAnswer = currentQuestion.label;
-      const resultsBody = document.getElementById("resultsBody");
       const tr = document.createElement("tr");
 
       if (parsedGuess === correctAnswer) {
         score++;
+        correctTimes.push((performance.now() - startTs) / 1000);
         document.getElementById("status").textContent = "✔ Correct!";
         document.getElementById("status").className = "status ok";
         tr.innerHTML = `<td>${correctAnswer}</td><td>${text}</td><td><span class="dot dot-green"></span></td>`;
-        resultsBody.appendChild(tr);
+        document.getElementById("resultsBody").appendChild(tr);
         finishQuestion();
       } else {
-        tr.innerHTML = `<td>${correctAnswer}</td><td>${text || "—"}</td><td><span class="dot dot-red"></span></td>`;
-        resultsBody.appendChild(tr);
+        const displayChord = (attemptsForCurrent >= 3) ? correctAnswer : "???";
+        tr.innerHTML = `<td>${displayChord}</td><td>${text || "—"}</td><td><span class="dot dot-red"></span></td>`;
+        document.getElementById("resultsBody").appendChild(tr);
 
         if (attemptsForCurrent < 3) {
           document.getElementById("status").textContent = `✘ Attempt ${attemptsForCurrent}/3 wrong. Try again...`;
@@ -344,6 +333,13 @@
       document.getElementById("scoreNow").textContent = `${score}/${idx + 1}`;
       document.getElementById("nextBtn").disabled = false;
       document.getElementById("practiceMistakesBtn").disabled = mistakes.length === 0;
+
+      if (idx === 9) { // 10th Question
+        const totalSessionTime = ((performance.now() - sessionStartTs) / 1000).toFixed(2);
+        const avgTime = (correctTimes.reduce((a, b) => a + b, 0) / (correctTimes.length || 1)).toFixed(2);
+        document.getElementById("sessionStats").innerHTML = 
+          `Session Complete! <br>Total Time: ${totalSessionTime}s <br>Avg Correct Time: ${avgTime}s`;
+      }
     }
 
     function renderQuestion() {
@@ -364,16 +360,18 @@
     }
 
     function startSet(chords = null) {
-      initTools(); // Try to init, but don't block
-      idx = 0; score = 0; mistakes = [];
+      initTools();
+      idx = 0; score = 0; mistakes = []; correctTimes = [];
+      sessionStartTs = performance.now();
       document.getElementById("resultsBody").innerHTML = ""; 
+      document.getElementById("sessionStats").innerHTML = "";
       document.getElementById("scoreNow").textContent = "0/0";
       const trebleOk = document.getElementById("cbTreble").checked;
       const bassOk = document.getElementById("cbBass").checked;
       
       set = chords || Array.from({length: 10}, () => {
         const root = pickRandom(getRootPool());
-        const qual = pickRandom(QUALS);
+        const qual = pickRandom(["maj7","min7","7"]);
         const invs = [0,1,2].filter(i => document.getElementById("inv" + i).checked);
         const clef = (trebleOk && bassOk) ? pickRandom(["treble", "bass"]) : (bassOk ? "bass" : "treble");
         return { root, qual, inv: pickRandom(invs.length ? invs : [0]), clef, label: root + qual };
@@ -414,11 +412,7 @@
         const notes = chordToSpelledNotes(currentQuestion.root, currentQuestion.qual, currentQuestion.inv, currentQuestion.clef).map(n => n.name + n.octave);
         synth?.triggerAttackRelease(notes, "1n");
     };
-    document.getElementById("nextBtn").onclick = (e) => {
-      e.currentTarget.blur();
-      idx++;
-      if (idx < 10) renderQuestion();
-    };
+    document.getElementById("nextBtn").onclick = (e) => { e.currentTarget.blur(); idx++; if (idx < 10) renderQuestion(); };
     document.getElementById("restartBtn").onclick = () => location.reload();
     document.getElementById("practiceMistakesBtn").onclick = (e) => { e.currentTarget.blur(); startSet(mistakes); };
   </script>
