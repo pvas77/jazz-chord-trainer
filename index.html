@@ -147,7 +147,7 @@
       <h4>How to answer</h4>
       <div class="small">
         Press <b>Start</b>. Then <b>Hold SPACE</b> to talk.<br/>
-        Say <code>Bbmaj7</code> or “B flat major seven”.
+        3 attempts per chord. Say <code>Bbmaj7</code>.
       </div>
     </div>
   </div>
@@ -217,6 +217,7 @@
     const SPELL_FLAT  = ["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"];
 
     let set = [], idx = 0, score = 0, mistakes = [], currentQuestion = null;
+    let attemptsForCurrent = 0;
     let startTs = null, timerHandle = null, awaitingNext = false;
     let synth = null, recog = null, isListening = false;
 
@@ -308,6 +309,8 @@
 
     function handleAnswer(text) {
       if (awaitingNext || !currentQuestion) return;
+      
+      attemptsForCurrent++;
       const parsedGuess = parseSpokenChord(text);
       const correctAnswer = currentQuestion.label;
       const resultsBody = document.getElementById("resultsBody");
@@ -318,15 +321,24 @@
         document.getElementById("status").textContent = "✔ Correct!";
         document.getElementById("status").className = "status ok";
         tr.innerHTML = `<td>${correctAnswer}</td><td>${text}</td><td><span class="dot dot-green"></span></td>`;
+        resultsBody.appendChild(tr);
+        finishQuestion();
       } else {
-        document.getElementById("status").textContent = `✘ Wrong. Was ${correctAnswer}`;
-        document.getElementById("status").className = "status bad";
-        mistakes.push(currentQuestion);
+        // Log the failure to the table
         tr.innerHTML = `<td>${correctAnswer}</td><td>${text || "—"}</td><td><span class="dot dot-red"></span></td>`;
+        resultsBody.appendChild(tr);
+
+        if (attemptsForCurrent < 3) {
+          document.getElementById("status").textContent = `✘ Attempt ${attemptsForCurrent}/3 wrong. Try again...`;
+          document.getElementById("status").className = "status bad";
+          // Stopwatch keeps running, awaitingNext remains false
+        } else {
+          document.getElementById("status").textContent = `✘ Failed 3 times. Was ${correctAnswer}`;
+          document.getElementById("status").className = "status bad";
+          mistakes.push(currentQuestion);
+          finishQuestion();
+        }
       }
-      
-      resultsBody.appendChild(tr);
-      finishQuestion();
     }
 
     function finishQuestion() {
@@ -334,10 +346,12 @@
       clearInterval(timerHandle);
       document.getElementById("scoreNow").textContent = `${score}/${idx + 1}`;
       document.getElementById("nextBtn").disabled = false;
+      document.getElementById("practiceMistakesBtn").disabled = mistakes.length === 0;
     }
 
     function renderQuestion() {
       awaitingNext = false;
+      attemptsForCurrent = 0;
       currentQuestion = set[idx];
       document.getElementById("qIdx").textContent = idx + 1;
       document.getElementById("heardText").textContent = "—";
@@ -356,63 +370,4 @@
         idx = 0; score = 0; mistakes = [];
         document.getElementById("resultsBody").innerHTML = ""; 
         document.getElementById("scoreNow").textContent = "0/0";
-        const trebleOk = document.getElementById("cbTreble").checked;
-        const bassOk = document.getElementById("cbBass").checked;
-        set = chords || Array.from({length: 10}, () => {
-          const root = pickRandom(getRootPool());
-          const qual = pickRandom(QUALS);
-          const invs = [0,1,2].filter(i => document.getElementById("inv" + i).checked);
-          const clef = (trebleOk && bassOk) ? pickRandom(["treble", "bass"]) : (bassOk ? "bass" : "treble");
-          return { root, qual, inv: pickRandom(invs.length ? invs : [0]), clef, label: root + qual };
-        });
-        renderQuestion();
-      });
-    }
-
-    // Spacebar Logic: Block browser default button hijacking
-    window.addEventListener("keydown", (e) => {
-      if (e.code === "Space") {
-        e.preventDefault(); // Stop space from clicking focused buttons
-        if (!isListening && !awaitingNext && currentQuestion) {
-          isListening = true;
-          document.getElementById("micIndicator").classList.add("listening");
-          try { recog?.start(); } catch(err) {}
-        }
-      }
-      if (e.code === "Enter" && !document.getElementById("nextBtn").disabled) {
-        idx++;
-        if (idx < 10) renderQuestion();
-        else {
-          document.getElementById("practiceMistakesBtn").disabled = mistakes.length === 0;
-        }
-      }
-    });
-
-    window.addEventListener("keyup", (e) => {
-      if (e.code === "Space") {
-        e.preventDefault();
-        if (isListening) {
-          isListening = false;
-          document.getElementById("micIndicator").classList.remove("listening");
-          recog?.stop();
-        }
-      }
-    });
-
-    // Remove focus from buttons after clicking so Spacebar doesn't trigger them
-    document.getElementById("startBtn").onclick = (e) => { e.target.blur(); startSet(); };
-    document.getElementById("playBtn").onclick = (e) => { 
-        e.target.blur();
-        const notes = chordToSpelledNotes(currentQuestion.root, currentQuestion.qual, currentQuestion.inv, currentQuestion.clef).map(n => n.name + n.octave);
-        synth.triggerAttackRelease(notes, "1n");
-    };
-    document.getElementById("nextBtn").onclick = (e) => {
-      e.target.blur();
-      idx++;
-      if (idx < 10) renderQuestion();
-    };
-    document.getElementById("restartBtn").onclick = () => location.reload();
-    document.getElementById("practiceMistakesBtn").onclick = (e) => { e.target.blur(); startSet(mistakes); };
-  </script>
-</body>
-</html>
+        const trebleOk = document
