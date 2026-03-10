@@ -127,7 +127,7 @@
     </div>
 
     <div class="block">
-      <h4>Clef (select one or both)</h4>
+      <h4>Clef</h4>
       <div class="checkrow">
         <label><input type="checkbox" id="cbTreble" checked> Treble</label>
         <label><input type="checkbox" id="cbBass"> Bass</label>
@@ -269,8 +269,7 @@
 
     async function initTools() {
       if (!synth) {
-        await Tone.start();
-        synth = new Tone.PolySynth(Tone.Synth).toDestination();
+        try { await Tone.start(); synth = new Tone.PolySynth(Tone.Synth).toDestination(); } catch(e){}
       }
       if (!recog && SpeechRecognition) {
         try {
@@ -324,14 +323,12 @@
         resultsBody.appendChild(tr);
         finishQuestion();
       } else {
-        // Log the failure to the table
         tr.innerHTML = `<td>${correctAnswer}</td><td>${text || "—"}</td><td><span class="dot dot-red"></span></td>`;
         resultsBody.appendChild(tr);
 
         if (attemptsForCurrent < 3) {
           document.getElementById("status").textContent = `✘ Attempt ${attemptsForCurrent}/3 wrong. Try again...`;
           document.getElementById("status").className = "status bad";
-          // Stopwatch keeps running, awaitingNext remains false
         } else {
           document.getElementById("status").textContent = `✘ Failed 3 times. Was ${correctAnswer}`;
           document.getElementById("status").className = "status bad";
@@ -358,6 +355,7 @@
       document.getElementById("status").textContent = "";
       drawChord(currentQuestion);
       startTs = performance.now();
+      if (timerHandle) clearInterval(timerHandle);
       timerHandle = setInterval(() => {
         document.getElementById("timeNow").textContent = ((performance.now() - startTs)/1000).toFixed(2);
       }, 50);
@@ -366,8 +364,63 @@
     }
 
     function startSet(chords = null) {
-      initTools().then(() => {
-        idx = 0; score = 0; mistakes = [];
-        document.getElementById("resultsBody").innerHTML = ""; 
-        document.getElementById("scoreNow").textContent = "0/0";
-        const trebleOk = document
+      initTools(); // Try to init, but don't block
+      idx = 0; score = 0; mistakes = [];
+      document.getElementById("resultsBody").innerHTML = ""; 
+      document.getElementById("scoreNow").textContent = "0/0";
+      const trebleOk = document.getElementById("cbTreble").checked;
+      const bassOk = document.getElementById("cbBass").checked;
+      
+      set = chords || Array.from({length: 10}, () => {
+        const root = pickRandom(getRootPool());
+        const qual = pickRandom(QUALS);
+        const invs = [0,1,2].filter(i => document.getElementById("inv" + i).checked);
+        const clef = (trebleOk && bassOk) ? pickRandom(["treble", "bass"]) : (bassOk ? "bass" : "treble");
+        return { root, qual, inv: pickRandom(invs.length ? invs : [0]), clef, label: root + qual };
+      });
+      renderQuestion();
+    }
+
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "Space") {
+        e.preventDefault(); 
+        if (!isListening && !awaitingNext && currentQuestion) {
+          isListening = true;
+          document.getElementById("micIndicator").classList.add("listening");
+          try { recog?.start(); } catch(err) {}
+        }
+      }
+      if (e.code === "Enter" && !document.getElementById("nextBtn").disabled) {
+        idx++;
+        if (idx < 10) renderQuestion();
+      }
+    });
+
+    window.addEventListener("keyup", (e) => {
+      if (e.code === "Space") {
+        e.preventDefault();
+        if (isListening) {
+          isListening = false;
+          document.getElementById("micIndicator").classList.remove("listening");
+          recog?.stop();
+        }
+      }
+    });
+
+    document.getElementById("startBtn").onclick = (e) => { e.currentTarget.blur(); startSet(); };
+    document.getElementById("playBtn").onclick = (e) => { 
+        e.currentTarget.blur();
+        if(!currentQuestion) return;
+        const notes = chordToSpelledNotes(currentQuestion.root, currentQuestion.qual, currentQuestion.inv, currentQuestion.clef).map(n => n.name + n.octave);
+        synth?.triggerAttackRelease(notes, "1n");
+    };
+    document.getElementById("nextBtn").onclick = (e) => {
+      e.currentTarget.blur();
+      idx++;
+      if (idx < 10) renderQuestion();
+    };
+    document.getElementById("restartBtn").onclick = () => location.reload();
+    document.getElementById("practiceMistakesBtn").onclick = (e) => { e.currentTarget.blur(); startSet(mistakes); };
+  </script>
+</body>
+</html>
