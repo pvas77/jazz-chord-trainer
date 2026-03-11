@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0" />
   <title>Jazz Chord Trainer (Voice)</title>
   <style>
-    html, body { height: 100%; }
+    html, body { height: 100%; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
     body {
       margin: 12px;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
@@ -16,53 +16,33 @@
     h1 { font-size: 20px; margin: 0 0 8px; }
 
     .topbar {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      align-items: flex-start;
-      margin-bottom: 10px;
+      display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; margin-bottom: 10px;
     }
     .block {
-      border: 1px solid #e9e9e9;
-      border-radius: 12px;
-      padding: 8px 10px;
-      background: #fff;
+      border: 1px solid #e9e9e9; border-radius: 12px; padding: 8px 10px; background: #fff;
       box-shadow: 0 2px 4px rgba(0,0,0,0.02);
     }
     .block h4 { margin: 0 0 6px; font-size: 12px; color: #111; }
     .checkrow { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
-    label { font-size: 12px; color: #333; user-select: none; cursor: pointer; }
+    label { font-size: 12px; color: #333; cursor: pointer; }
     .small { font-size: 12px; color: #555; }
 
     .layout {
-      display: grid;
-      grid-template-columns: 1.15fr 1fr;
-      gap: 12px;
-      height: calc(100vh - 180px);
-      min-height: 350px;
+      display: grid; grid-template-columns: 1.15fr 1fr; gap: 12px;
+      height: calc(100vh - 180px); min-height: 350px;
     }
 
     .card {
-      border: 1px solid #ddd;
-      border-radius: 12px;
-      padding: 10px;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      background: #fff;
+      border: 1px solid #ddd; border-radius: 12px; padding: 10px; height: 100%;
+      display: flex; flex-direction: column; background: #fff; position: relative;
     }
 
     .cardBody { overflow: auto; min-height: 0; padding-right: 4px; }
     .cardFooter { margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee; }
 
     #notation {
-      border: 1px solid #eee;
-      border-radius: 12px;
-      padding: 8px;
-      background: #fafafa;
-      display: flex;
-      justify-content: center;
-      min-height: 150px;
+      border: 1px solid #eee; border-radius: 12px; padding: 8px; background: #fafafa;
+      display: flex; justify-content: center; min-height: 150px;
     }
 
     .meta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; color: #333; }
@@ -70,21 +50,21 @@
 
     .controls { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
     button {
-      padding: 8px 16px;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-      background: white;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 500;
+      padding: 8px 16px; border-radius: 10px; border: 1px solid #ccc; background: white;
+      cursor: pointer; font-size: 14px; font-weight: 500;
     }
     button.primary { background: #111; color: #fff; border-color: #111; }
+    button.success { background: #0a7a2f; color: #fff; border-color: #0a7a2f; }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
 
     .transcript { margin-top: 10px; font-size: 16px; color: #222; min-height: 24px; font-weight: 600; }
     .status { margin-top: 6px; min-height: 18px; font-weight: 700; font-size: 13px; }
-    .ok { color: #0a7a2f; }
-    .bad { color: #b00020; }
+    
+    #mobileTouchZone {
+      display: none; background: #111; color: white; text-align: center; padding: 20px;
+      border-radius: 12px; font-weight: bold; margin-top: 10px; cursor: pointer;
+    }
+    #mobileTouchZone.active { background: #b00020; }
 
     table { width: 100%; border-collapse: collapse; margin-top: 8px; }
     th, td { text-align: left; padding: 10px 6px; border-bottom: 1px solid #eee; font-size: 13px; }
@@ -95,13 +75,7 @@
     .dot-red { background-color: #b00020; }
 
     #micPulse {
-      display: inline-block;
-      width: 10px;
-      height: 10px;
-      background: red;
-      border-radius: 50%;
-      margin-right: 8px;
-      visibility: hidden;
+      display: inline-block; width: 10px; height: 10px; background: red; border-radius: 50%; margin-right: 8px; visibility: hidden;
     }
     .listening #micPulse { visibility: visible; animation: pulse 1s infinite; }
     @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
@@ -109,6 +83,7 @@
     @media (max-width: 980px) {
       body { overflow: auto; }
       .layout { grid-template-columns: 1fr; height: auto; }
+      #mobileTouchZone { display: block; }
     }
   </style>
 </head>
@@ -125,7 +100,6 @@
         <label><input type="checkbox" id="cbFlats" checked> Flats</label>
       </div>
     </div>
-
     <div class="block">
       <h4>Clef</h4>
       <div class="checkrow">
@@ -133,7 +107,6 @@
         <label><input type="checkbox" id="cbBass"> Bass</label>
       </div>
     </div>
-
     <div class="block">
       <h4>Inversions</h4>
       <div class="checkrow">
@@ -142,13 +115,9 @@
         <label><input type="checkbox" id="inv2"> 2nd</label>
       </div>
     </div>
-
     <div class="block">
       <h4>How to answer</h4>
-      <div class="small">
-        Hold <b>SPACE</b> to talk. 3 attempts per chord.<br/>
-        Goal: 10 correct answers.
-      </div>
+      <div class="small" id="instructionText">Hold <b>SPACE</b>. 3 attempts.</div>
     </div>
   </div>
 
@@ -156,25 +125,21 @@
     <div class="card">
       <div class="cardBody">
         <div id="notation"></div>
-
         <div class="meta">
           <div class="pill">Q: <span id="qIdx">0</span>/10</div>
           <div class="pill">Time: <span id="timeNow">0.00</span>s</div>
           <div class="pill">Score: <span id="scoreNow">0/0</span></div>
         </div>
-
         <div class="transcript" id="micIndicator">
           <span id="micPulse"></span>Heard: <span id="heardText">—</span>
         </div>
-
+        <div id="mobileTouchZone">HOLD TO TALK</div>
         <div class="controls" style="margin-top:20px;">
           <button id="playBtn" disabled>🔊 Play Chord</button>
           <span class="small" id="micState" style="margin-left:auto; font-weight: bold;">Mic: Inactive</span>
         </div>
-
-        <div class="status" id="status"></div>
+        <div class="status" id="status" style="margin-top: 10px; font-size: 14px; font-weight: bold;"></div>
       </div>
-
       <div class="cardFooter">
         <div class="controls">
           <button class="primary" id="startBtn">Start Quiz & Enable Mic</button>
@@ -190,16 +155,13 @@
         <div id="sessionStats" class="small" style="margin-bottom:10px; color:#111; font-weight:bold;"></div>
         <table>
           <thead>
-            <tr>
-              <th>Chord shown</th>
-              <th>You said</th>
-              <th>Result</th>
-            </tr>
+            <tr><th>Chord shown</th><th>You said</th><th>Result</th></tr>
           </thead>
           <tbody id="resultsBody"></tbody>
         </table>
         <div class="controls" style="margin-top:15px;">
           <button id="practiceMistakesBtn" disabled>Practice mistakes</button>
+          <button id="downloadLogBtn" class="success" style="display:none;">Download Log (CSV)</button>
         </div>
       </div>
     </div>
@@ -213,11 +175,11 @@
     const SPELL_SHARP = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
     const SPELL_FLAT  = ["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"];
 
-    let set = [], idx = 0, score = 0, mistakes = [], currentQuestion = null;
-    let attemptsForCurrent = 0, correctTimes = [];
+    let set = [], idx = 0, score = 0, totalAttempts = 0, mistakes = [], currentQuestion = null;
+    let attemptsForCurrent = 0, correctTimes = [], sessionStartTs = null;
     let startTs = null, timerHandle = null, awaitingNext = false;
-    let sessionStartTs = null; 
     let synth = null, recog = null, isListening = false;
+    let csvData = []; // Store attempts for CSV export
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -235,7 +197,8 @@
       const rootPc = PC[root];
       const spell = (root.includes("b") && !root.includes("#")) ? SPELL_FLAT : SPELL_SHARP;
       const intervals = qual === "maj7" ? [0,4,7,11] : (qual === "min7" ? [0,3,7,10] : [0,4,7,10]);
-      const names = intervals.map(s => spell[(rootPc + s) % 12]).slice(inversion).concat(intervals.map(s => spell[(rootPc + s) % 12]).slice(0, inversion));
+      const baseNotes = intervals.map(s => spell[(rootPc + s) % 12]);
+      const names = baseNotes.slice(inversion).concat(baseNotes.slice(0, inversion));
       let octave = (clef === "bass") ? 2 : 4;
       let prevMidi = null;
       return names.map(nm => {
@@ -272,7 +235,7 @@
             document.getElementById("heardText").textContent = transcript;
             if (e.results[e.results.length - 1].isFinal) handleAnswer(transcript);
           };
-          document.getElementById("micState").textContent = "Mic: Ready (Spacebar)";
+          document.getElementById("micState").textContent = "Mic: Ready";
           document.getElementById("micState").style.color = "green";
         } catch (e) {
           document.getElementById("micState").textContent = "Mic: Error/Denied";
@@ -283,68 +246,87 @@
 
     function parseSpokenChord(text) {
       let s = text.toLowerCase().trim().replace(/[-,]/g, " ").replace(/\s+/g, " ");
-      const rootMatch = s.match(/\b([a-g])\b/i);
+      const rootMatch = s.match(/([a-g])/i);
       if (!rootMatch) return null;
       let root = rootMatch[1].toUpperCase();
-      if (s.includes("flat") || s.includes(" b ")) root += "b";
-      else if (s.includes("sharp") || s.includes("#")) root += "#";
+      if (s.includes("sharp") || s.includes("#")) root += "#";
+      else if (s.includes("flat") || s.match(/[a-g]b/i)) root += "b";
       let qual = "";
-      if (s.includes("major") && (s.includes("seven") || s.includes("7"))) qual = "maj7";
-      else if ((s.includes("minor") || s.includes("min")) && (s.includes("seven") || s.includes("7"))) qual = "min7";
-      else if (s.includes("seven") || s.includes("7") || s.includes("dominant")) qual = "7";
+      if (s.includes("major") || s.includes("maj")) qual = "maj7";
+      else if (s.includes("minor") || s.includes("min") || s.includes("m7")) qual = "min7";
+      else if (s.includes("7") || s.includes("seven") || s.includes("dominant")) qual = "7";
       return qual ? root + qual : null;
     }
 
     function handleAnswer(text) {
       if (awaitingNext || !currentQuestion) return;
+      
       attemptsForCurrent++;
+      totalAttempts++;
       const parsedGuess = parseSpokenChord(text);
       const correctAnswer = currentQuestion.label;
+      const resultsBody = document.getElementById("resultsBody");
       const tr = document.createElement("tr");
+      const timeTaken = ((performance.now() - startTs) / 1000).toFixed(2);
+      
+      const rootType = currentQuestion.root.includes("#") ? "Sharp" : (currentQuestion.root.includes("b") ? "Flat" : "Natural");
+
+      // Store in CSV array
+      csvData.push({
+        Question: idx + 1,
+        Chord: correctAnswer,
+        RootType: rootType,
+        Clef: currentQuestion.clef,
+        Inversion: currentQuestion.inv,
+        Attempt: attemptsForCurrent,
+        Heard: text,
+        Time: timeTaken,
+        Result: (parsedGuess === correctAnswer ? "Correct" : "Incorrect")
+      });
 
       if (parsedGuess === correctAnswer) {
         score++;
-        correctTimes.push((performance.now() - startTs) / 1000);
+        correctTimes.push(parseFloat(timeTaken));
         document.getElementById("status").textContent = "✔ Correct!";
-        document.getElementById("status").className = "status ok";
+        document.getElementById("status").style.color = "#0a7a2f";
         tr.innerHTML = `<td>${correctAnswer}</td><td>${text}</td><td><span class="dot dot-green"></span></td>`;
-        document.getElementById("resultsBody").appendChild(tr);
+        resultsBody.appendChild(tr);
         finishQuestion();
       } else {
         const displayChord = (attemptsForCurrent >= 3) ? correctAnswer : "???";
         tr.innerHTML = `<td>${displayChord}</td><td>${text || "—"}</td><td><span class="dot dot-red"></span></td>`;
-        document.getElementById("resultsBody").appendChild(tr);
+        resultsBody.appendChild(tr);
 
         if (attemptsForCurrent < 3) {
           document.getElementById("status").textContent = `✘ Attempt ${attemptsForCurrent}/3 wrong. Try again...`;
-          document.getElementById("status").className = "status bad";
+          document.getElementById("status").style.color = "#b00020";
         } else {
           document.getElementById("status").textContent = `✘ Failed 3 times. Was ${correctAnswer}`;
-          document.getElementById("status").className = "status bad";
+          document.getElementById("status").style.color = "#b00020";
           mistakes.push(currentQuestion);
           finishQuestion();
         }
       }
+      document.getElementById("scoreNow").textContent = `${score}/${totalAttempts}`;
     }
 
     function finishQuestion() {
       awaitingNext = true;
       clearInterval(timerHandle);
-      document.getElementById("scoreNow").textContent = `${score}/${idx + 1}`;
       document.getElementById("nextBtn").disabled = false;
       document.getElementById("practiceMistakesBtn").disabled = mistakes.length === 0;
 
-      if (idx === 9) { // 10th Question
+      if (idx === 9) {
         const totalSessionTime = ((performance.now() - sessionStartTs) / 1000).toFixed(2);
         const avgTime = (correctTimes.reduce((a, b) => a + b, 0) / (correctTimes.length || 1)).toFixed(2);
         document.getElementById("sessionStats").innerHTML = 
           `Session Complete! <br>Total Time: ${totalSessionTime}s <br>Avg Correct Time: ${avgTime}s`;
+        document.getElementById("downloadLogBtn").style.display = "block";
       }
     }
 
     function renderQuestion() {
-      awaitingNext = false;
-      attemptsForCurrent = 0;
+      awaitingNext = false; attemptsForCurrent = 0;
       currentQuestion = set[idx];
       document.getElementById("qIdx").textContent = idx + 1;
       document.getElementById("heardText").textContent = "—";
@@ -359,16 +341,47 @@
       document.getElementById("playBtn").disabled = false;
     }
 
+    function startListening() {
+      if (!isListening && !awaitingNext && currentQuestion) {
+        isListening = true;
+        document.getElementById("micIndicator").classList.add("listening");
+        document.getElementById("mobileTouchZone").classList.add("active");
+        try { recog?.start(); } catch(err) {}
+      }
+    }
+    function stopListening() {
+      if (isListening) {
+        isListening = false;
+        document.getElementById("micIndicator").classList.remove("listening");
+        document.getElementById("mobileTouchZone").classList.remove("active");
+        recog?.stop();
+      }
+    }
+
+    function downloadCSV() {
+      let csvContent = "data:text/csv;charset=utf-8,";
+      csvContent += "Question,Chord,RootType,Clef,Inversion,Attempt,Heard,Time,Result\n";
+      csvData.forEach(row => {
+        csvContent += `${row.Question},${row.Chord},${row.RootType},${row.Clef},${row.Inversion},${row.Attempt},"${row.Heard}",${row.Time},${row.Result}\n`;
+      });
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `jazz_trainer_log_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+    }
+
     function startSet(chords = null) {
       initTools();
-      idx = 0; score = 0; mistakes = []; correctTimes = [];
+      idx = 0; score = 0; totalAttempts = 0; mistakes = []; correctTimes = []; csvData = [];
       sessionStartTs = performance.now();
       document.getElementById("resultsBody").innerHTML = ""; 
       document.getElementById("sessionStats").innerHTML = "";
       document.getElementById("scoreNow").textContent = "0/0";
+      document.getElementById("downloadLogBtn").style.display = "none";
       const trebleOk = document.getElementById("cbTreble").checked;
       const bassOk = document.getElementById("cbBass").checked;
-      
       set = chords || Array.from({length: 10}, () => {
         const root = pickRandom(getRootPool());
         const qual = pickRandom(["maj7","min7","7"]);
@@ -380,41 +393,27 @@
     }
 
     window.addEventListener("keydown", (e) => {
-      if (e.code === "Space") {
-        e.preventDefault(); 
-        if (!isListening && !awaitingNext && currentQuestion) {
-          isListening = true;
-          document.getElementById("micIndicator").classList.add("listening");
-          try { recog?.start(); } catch(err) {}
-        }
-      }
+      if (e.code === "Space") { e.preventDefault(); startListening(); }
       if (e.code === "Enter" && !document.getElementById("nextBtn").disabled) {
-        idx++;
-        if (idx < 10) renderQuestion();
+        idx++; if (idx < 10) renderQuestion();
       }
     });
+    window.addEventListener("keyup", (e) => { if (e.code === "Space") stopListening(); });
 
-    window.addEventListener("keyup", (e) => {
-      if (e.code === "Space") {
-        e.preventDefault();
-        if (isListening) {
-          isListening = false;
-          document.getElementById("micIndicator").classList.remove("listening");
-          recog?.stop();
-        }
-      }
-    });
+    const touchZone = document.getElementById("mobileTouchZone");
+    touchZone.addEventListener("touchstart", (e) => { e.preventDefault(); startListening(); });
+    touchZone.addEventListener("touchend", (e) => { e.preventDefault(); stopListening(); });
 
     document.getElementById("startBtn").onclick = (e) => { e.currentTarget.blur(); startSet(); };
     document.getElementById("playBtn").onclick = (e) => { 
         e.currentTarget.blur();
-        if(!currentQuestion) return;
         const notes = chordToSpelledNotes(currentQuestion.root, currentQuestion.qual, currentQuestion.inv, currentQuestion.clef).map(n => n.name + n.octave);
         synth?.triggerAttackRelease(notes, "1n");
     };
     document.getElementById("nextBtn").onclick = (e) => { e.currentTarget.blur(); idx++; if (idx < 10) renderQuestion(); };
     document.getElementById("restartBtn").onclick = () => location.reload();
     document.getElementById("practiceMistakesBtn").onclick = (e) => { e.currentTarget.blur(); startSet(mistakes); };
+    document.getElementById("downloadLogBtn").onclick = downloadCSV;
   </script>
 </body>
 </html>
